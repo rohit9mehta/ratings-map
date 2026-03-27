@@ -319,15 +319,9 @@ function makeSavedMarker(data) {
   const marker = L.marker([data.lat, data.lng], {
     icon: L.divIcon({
       className: "marker-saved",
-      html: `
-        <div class="marker-flag">
-          <div class="marker-name">${esc(data.name)}</div>
-          <div class="marker-avg">${avgText}</div>
-          <div class="marker-count">${countLabel}</div>
-        </div>
-        <div class="marker-stem"></div>`,
-      iconSize: [0, 0],
-      iconAnchor: [4, 52],
+      html: `<div class="marker-pin"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     }),
   });
 
