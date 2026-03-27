@@ -131,6 +131,25 @@ function clearTemp() {
 }
 
 // ─── Modal items ────────────────────────────────────
+function ratingCol(label, field, item, i) {
+  const active = item[field] !== null;
+  const val = active ? item[field] : 5;
+  return `
+    <div class="item-rating-col ${active ? "" : "rating-disabled"}">
+      <label class="item-rating-toggle">
+        <input type="checkbox" ${active ? "checked" : ""}
+          data-toggle="${field}" data-idx="${i}">
+        <span class="item-rating-label">${label}</span>
+      </label>
+      <div class="item-rating-row">
+        <input type="range" min="0" max="10" step="0.1"
+          value="${val}" ${active ? "" : "disabled"}
+          data-field="${field}" data-idx="${i}">
+        <span class="item-rating-val">${active ? fmt(val) : "—"}</span>
+      </div>
+    </div>`;
+}
+
 function renderModalItems() {
   itemsEmpty.style.display = modalItems.length === 0 ? "block" : "none";
   itemsContainer.innerHTML = modalItems
@@ -146,24 +165,8 @@ function renderModalItems() {
         <button class="item-delete-btn" data-idx="${i}" title="Remove">&times;</button>
       </div>
       <div class="item-ratings">
-        <div class="item-rating-col">
-          <div class="item-rating-label">Ayushi</div>
-          <div class="item-rating-row">
-            <input type="range" min="0" max="10" step="0.1"
-              value="${item.ayushiRating}"
-              data-field="ayushiRating" data-idx="${i}">
-            <span class="item-rating-val">${fmt(item.ayushiRating)}</span>
-          </div>
-        </div>
-        <div class="item-rating-col">
-          <div class="item-rating-label">Rohit</div>
-          <div class="item-rating-row">
-            <input type="range" min="0" max="10" step="0.1"
-              value="${item.rohitRating}"
-              data-field="rohitRating" data-idx="${i}">
-            <span class="item-rating-val">${fmt(item.rohitRating)}</span>
-          </div>
-        </div>
+        ${ratingCol("Ayushi", "ayushiRating", item, i)}
+        ${ratingCol("Rohit", "rohitRating", item, i)}
       </div>
     </div>`
     )
@@ -172,6 +175,23 @@ function renderModalItems() {
 
 itemsContainer.addEventListener("input", (e) => {
   const idx = parseInt(e.target.dataset.idx);
+
+  // Rating toggle checkbox
+  const toggleField = e.target.dataset.toggle;
+  if (toggleField && !isNaN(idx)) {
+    const on = e.target.checked;
+    modalItems[idx][toggleField] = on ? 5 : null;
+    // Re-render just this item's rating col
+    const col = e.target.closest(".item-rating-col");
+    const range = col.querySelector('input[type="range"]');
+    const valSpan = col.querySelector(".item-rating-val");
+    range.disabled = !on;
+    range.value = on ? 5 : 5;
+    valSpan.textContent = on ? "5.0" : "—";
+    col.classList.toggle("rating-disabled", !on);
+    return;
+  }
+
   const field = e.target.dataset.field;
   if (isNaN(idx) || !field) return;
 
@@ -247,8 +267,8 @@ saveBtn.addEventListener("click", async () => {
     .filter((it) => it.name.trim())
     .map((it) => ({
       name: it.name.trim(),
-      ayushiRating: it.ayushiRating,
-      rohitRating: it.rohitRating,
+      ayushiRating: it.ayushiRating !== null ? it.ayushiRating : null,
+      rohitRating: it.rohitRating !== null ? it.rohitRating : null,
     }));
 
   try {
@@ -303,8 +323,10 @@ onSnapshot(placesQ, (snap) => {
 
 function avg(items) {
   if (!items?.length) return { a: null, r: null };
-  const a = items.reduce((s, it) => s + it.ayushiRating, 0) / items.length;
-  const r = items.reduce((s, it) => s + it.rohitRating, 0) / items.length;
+  const aItems = items.filter((it) => it.ayushiRating !== null);
+  const rItems = items.filter((it) => it.rohitRating !== null);
+  const a = aItems.length ? aItems.reduce((s, it) => s + it.ayushiRating, 0) / aItems.length : null;
+  const r = rItems.length ? rItems.reduce((s, it) => s + it.rohitRating, 0) / rItems.length : null;
   return { a, r };
 }
 
@@ -330,28 +352,21 @@ function makeSavedMarker(data) {
   // Popup
   let body;
   if (items.length > 0) {
-    const avgBar = `
-      <div class="popup-avg-bar">
-        <div class="popup-avg-col">
-          <div class="popup-avg-label">Ayushi</div>
-          <div class="popup-avg-val">${fmt(av.a)}</div>
-        </div>
-        <div class="popup-avg-col">
-          <div class="popup-avg-label">Rohit</div>
-          <div class="popup-avg-val">${fmt(av.r)}</div>
-        </div>
-      </div>`;
+    const avgCols = [];
+    if (av.a !== null) avgCols.push(`<div class="popup-avg-col"><div class="popup-avg-label">Ayushi</div><div class="popup-avg-val">${fmt(av.a)}</div></div>`);
+    if (av.r !== null) avgCols.push(`<div class="popup-avg-col"><div class="popup-avg-label">Rohit</div><div class="popup-avg-val">${fmt(av.r)}</div></div>`);
+    const avgBar = avgCols.length ? `<div class="popup-avg-bar">${avgCols.join("")}</div>` : "";
     const list = items
-      .map(
-        (it) => `
+      .map((it) => {
+        const scores = [];
+        if (it.ayushiRating !== null) scores.push(`<div class="popup-item-score">A <span>${fmt(it.ayushiRating)}</span></div>`);
+        if (it.rohitRating !== null) scores.push(`<div class="popup-item-score">R <span>${fmt(it.rohitRating)}</span></div>`);
+        return `
       <li class="popup-item">
         <div class="popup-item-name">${esc(it.name)}</div>
-        <div class="popup-item-scores">
-          <div class="popup-item-score">A <span>${fmt(it.ayushiRating)}</span></div>
-          <div class="popup-item-score">R <span>${fmt(it.rohitRating)}</span></div>
-        </div>
-      </li>`
-      )
+        <div class="popup-item-scores">${scores.join("")}</div>
+      </li>`;
+      })
       .join("");
     body = avgBar + `<ul class="popup-items">${list}</ul>`;
   } else {
@@ -395,10 +410,10 @@ function renderDrawer(places) {
     .map((p) => {
       const items = p.items || [];
       const av = avg(items);
-      const avgText =
-        av.a !== null
-          ? `A ${fmt(av.a)} · R ${fmt(av.r)}`
-          : "";
+      const avgParts = [];
+      if (av.a !== null) avgParts.push(`A ${fmt(av.a)}`);
+      if (av.r !== null) avgParts.push(`R ${fmt(av.r)}`);
+      const avgText = avgParts.join(" · ");
       const count =
         items.length === 1 ? "1 item" : `${items.length} items`;
       const preview = items
