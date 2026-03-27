@@ -341,7 +341,7 @@ function makeSavedMarker(data) {
   const marker = L.marker([data.lat, data.lng], {
     icon: L.divIcon({
       className: "marker-saved",
-      html: `<span class="marker-rose">🌹</span>`,
+      html: `<span class="marker-rose">${data.emoji || "🌹"}</span>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     }),

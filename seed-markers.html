@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head><title>Seed Markers</title></head>
+<body>
+  <pre id="log">Running...</pre>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+    const app = initializeApp({
+      apiKey: "AIzaSyDeKv2pGHtcdLDR3u_6SZuWDqP-ETyn7vU",
+      authDomain: "farmers-market-book.firebaseapp.com",
+      projectId: "farmers-market-book",
+      storageBucket: "farmers-market-book.firebasestorage.app",
+      messagingSenderId: "540071859912",
+      appId: "1:540071859912:web:21bfc6c8a8b44616bdb7fd"
+    });
+    const db = getFirestore(app);
+    const log = document.getElementById("log");
+
+    const markers = [
+      {
+        name: "1244 California Street",
+        lat: 37.7914012,
+        lng: -122.4148768,
+        address: "1244 California Street, San Francisco, CA 94109",
+        emoji: "\u{1F400}",
+        items: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      {
+        name: "1157 Powell Street",
+        lat: 37.7951357,
+        lng: -122.4099073,
+        address: "1157 Powell Street, San Francisco, CA 94108",
+        emoji: "\u2764\uFE0F",
+        items: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+    ];
+
+    try {
+      for (const m of markers) {
+        const ref = await addDoc(collection(db, "places"), m);
+        log.textContent += `\nAdded ${m.emoji} ${m.name} -> ${ref.id}`;
+      }
+      log.textContent += "\n\nDone! You can close this page.";
+    } catch (err) {
+      log.textContent += `\nError: ${err.message}`;
+    }
+  </script>
+</body>
+</html>
